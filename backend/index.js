@@ -60,7 +60,7 @@ app.get("/users", verifyToken, async (req, res) => {
         if (rows.length === 0) {
             return res.status(404).json({ message: "User not found" });
         }
-        res.json({ username: rows[0].username }); // Return the correct 'username'
+        res.json({ username: rows[0].username }); 
     } catch (error) {
         console.error("Error fetching user info:", error);
         res.status(500).json({ error: "Internal server error" });
