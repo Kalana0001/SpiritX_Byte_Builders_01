@@ -1,68 +1,103 @@
-import React, { useState } from 'react';
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope, faLock, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import Validation from '../../validation/LoginValidation';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './Signin.css';
-import sign1 from '../../assets/sign1.png';
-function Signin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
-  const togglePasswordVisibility = () => {
-    setShowPassword((prevShowPassword) => !prevShowPassword);
-  };
+const Signin = () => {
+    const [values, setValues] = useState({
+        email: "",
+        password: "",
+    });
+    const [errors, setErrors] = useState({
+        email: "",
+        password: "",
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState("");
+    const navigate = useNavigate();
 
-  return (
-    <div className='container'>
-      <div className="forms-container">
-        <div className="signin-signup">
-          <form className="sign-in-form">
-            <h2 className="title">Sign in</h2>
-            <div className="input-field">
-              <i className="icon"><FontAwesomeIcon icon={faEnvelope} /></i>
-              <input 
-                type="email" 
-                name='email' 
-                onChange={(e) => setEmail(e.target.value)} 
-                value={email} 
-                placeholder="Enter your email" 
-                required 
-              />
+    const handleInputChange = (event) => {
+        const { name, value } = event.target;
+        setValues(prevValues => ({
+            ...prevValues,
+            [name]: value
+        }));
+    };
+
+    useEffect(() => {
+        const validationErrors = Validation(values);
+        setErrors(validationErrors);
+    }, [values]);
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        setError("");
+        const validationErrors = Validation(values);
+        setErrors(validationErrors);
+
+        if (Object.values(validationErrors).every(err => err === "")) {
+            try {
+                setIsSubmitting(true);
+                const response = await axios.post('http://localhost:8087/login', values);
+                const { message, token } = response.data;
+
+                if (message === "Success" && token) {
+                    localStorage.setItem('authToken', token);
+                    toast.success('Login successful!');
+                    navigate('/home');
+                } else {
+                    setError("Invalid email or password");
+                    toast.error('Invalid email or password');
+                }
+            } catch (err) {
+                setError("Something went wrong. Please try again later.");
+                toast.error('Something went wrong. Please try again later.');
+                console.error("Login error:", err);
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+    };
+
+    return (
+        <div className="signin-container">
+            <div className="signin-form">
+                <h2>Sign In</h2>
+                <form onSubmit={handleSubmit}>
+                    <div>
+                        <label>Email:</label>
+                        <input
+                            type="email"
+                            name="email"
+                            value={values.email}
+                            onChange={handleInputChange}
+                            required
+                        />
+                        {errors.email && <span className="text-danger">{errors.email}</span>}
+                    </div>
+                    <div>
+                        <label>Password:</label>
+                        <input
+                            type="password"
+                            name="password"
+                            value={values.password}
+                            onChange={handleInputChange}
+                            required
+                        />
+                        {errors.password && <span className='text-danger'>{errors.password}</span>}
+                    </div>
+                    {error && <p className="error-message">{error}</p>}
+                    <button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? 'Signing In...' : 'Sign In'}
+                    </button>
+                </form>
+                <p>Don't have an account? <Link to="/">Sign Up</Link></p>
             </div>
-
-            <div className="input-field">
-              <i className="icon"><FontAwesomeIcon icon={faLock} /></i>
-              <input 
-                type={showPassword ? 'text' : 'password'} 
-                onChange={(e) => setPassword(e.target.value)} 
-                value={password} 
-                name='password' 
-                placeholder="Enter password" 
-                required 
-              />
-              <i className="show-password" onClick={togglePasswordVisibility}>
-                {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
-              </i>
-            </div>
-
-            <button type="submit" className="btn">Sign In</button> 
-          </form>
         </div>
-      </div>
-      <div className="panels-container">
-        <div className="panel left-panel">
-          <div className="content">
-            <h3>Police Officer</h3>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Nostrum
-              laboriosam ad deleniti.
-            </p>
-          </div>
-          <img src={sign1} className="image" alt="" />
-        </div>
-      </div>
-    </div>
-  );
-}
+    );
+};
 
 export default Signin;
